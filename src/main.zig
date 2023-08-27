@@ -9,8 +9,13 @@ pub fn main() !void {
 
     const allocator = gpa.allocator();
 
-    var exe = try std.fs.cwd().openFile("bin/loop/loop.elf", .{});
-    // var exe = try std.fs.cwd().openFile("bin/loop-zig/loop", .{});
+    var args_it = try std.process.argsWithAllocator(allocator);
+    defer args_it.deinit();
+
+    _ = args_it.next(); // exe name
+    const bin_path = args_it.next() orelse return error.missing_cli_argument;
+
+    var exe = try std.fs.cwd().openFile(bin_path, .{});
     defer exe.close();
 
     const text = try code(allocator, exe);
@@ -24,6 +29,7 @@ pub fn main() !void {
     }
 }
 
+// TODO: rename
 fn code(allocator: Allocator, file: std.fs.File) ![]const u8 {
     var header = try std.elf.Header.read(file);
     std.debug.assert(header.shstrndx != std.elf.SHN_UNDEF);
@@ -67,11 +73,4 @@ fn code(allocator: Allocator, file: std.fs.File) ![]const u8 {
     };
 
     return text;
-}
-
-test "simple test" {
-    var list = std.ArrayList(i32).init(std.testing.allocator);
-    defer list.deinit(); // try commenting this out and see if zig detects the memory leak!
-    try list.append(42);
-    try std.testing.expectEqual(@as(i32, 42), list.pop());
 }
