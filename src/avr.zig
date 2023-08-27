@@ -11,6 +11,7 @@ const eor = @import("avr/eor.zig").handler;
 const inout = @import("avr/inout.zig").handler;
 const ldi = @import("avr/ldi.zig").handler;
 const no_operand = @import("avr/no_operand.zig").handler;
+const load_store = @import("avr/load_store.zig").handler;
 
 const log = std.log.scoped(.avr);
 
@@ -49,6 +50,11 @@ pub const lut = blk: {
 
         if (bstr.matchExtract("001001rrrr", i)) |ret| {
             ptr.* = eor(ret.r);
+            continue;
+        }
+
+        if (bstr.matchExtract("100100oooo", i)) |ret| {
+            ptr.* = load_store(ret.o);
             continue;
         }
 
