@@ -66,7 +66,7 @@ pub fn panic(self: Cpu, comptime fmt: []const u8, args: anytype) noreturn {
         log.err("r{: <2}: 0x{X:0>2}\tr{: <2}: 0x{X:0>2}\tr{: <2}: 0x{X:0>2}\tr{: <2}: 0x{X:0>2}", .{ ri, r[ri], ri + 1, r[ri + 1], ri + 2, r[ri + 2], ri + 3, r[ri + 3] });
     }
     log.err("sp: 0x{X:0>4}", .{self.sp});
-    log.err("sreg: 0x{X:0>2} (TODO: Pretty Print)", .{@as(u8, @bitCast(self.sreg))});
+    log.err("sreg: 0x{X:0>2} {s}", .{ @as(u8, @bitCast(self.sreg)), self.sreg.print() });
 
     if (self.pipeline.stage != null) log.err("next instr (in decoding stage): 0x{X:0>4}", .{self.pipeline.stage.?});
 
@@ -95,4 +95,19 @@ const Status = packed struct(u8) {
     half_carry: bool,
     bit_copy: bool,
     interrupt: bool,
+
+    fn print(self: @This()) [10]u8 {
+        var str: [10]u8 = "[--------]".*;
+
+        if (self.interrupt) str[1] = 'I';
+        if (self.bit_copy) str[2] = 'T';
+        if (self.half_carry) str[3] = 'H';
+        if (self.sign) str[4] = 'S';
+        if (self.overflow) str[5] = 'V';
+        if (self.negative) str[6] = 'N';
+        if (self.zero) str[7] = 'Z';
+        if (self.carry) str[8] = 'C';
+
+        return str;
+    }
 };
