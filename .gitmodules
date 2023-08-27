@@ -1,0 +1,3 @@
+[submodule "lib/bit-string"]
+	path = lib/bit-string
+	url = https://github.com/paoda/bit-string
