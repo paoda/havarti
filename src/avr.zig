@@ -4,13 +4,15 @@ const bstr = @import("bit-string");
 pub const InstrFn = *const fn (cpu: *Cpu, opcode: u16) void;
 pub const Cpu = @import("Cpu.zig");
 
+const nop = @import("avr/nop.zig").handler;
+const status_clear_set = @import("avr/status_clear_set.zig").handler;
 const multiply = @import("avr/multiply.zig").handler;
 const rjmp = @import("avr/rjmp.zig").handler;
 const jmp = @import("avr/jmp.zig").handler;
 const eor = @import("avr/eor.zig").handler;
 const inout = @import("avr/inout.zig").handler;
 const ldi = @import("avr/ldi.zig").handler;
-const no_operand = @import("avr/no_operand.zig").handler;
+const zero_operand = @import("avr/zero_operand.zig").handler;
 const load_store = @import("avr/load_store.zig").handler;
 const load_store_indirect = @import("avr/load_store_indirect.zig").handler;
 
@@ -28,54 +30,63 @@ pub fn und(cpu: *Cpu, opcode: u16) void {
 }
 
 pub const lut = blk: {
-    const table_len = std.math.maxInt(u10);
+    var table: [std.math.maxInt(u12)]InstrFn = undefined;
 
-    var table: [table_len]InstrFn = undefined;
-    for (&table, 0..) |*ptr, _i| {
-        const i: u10 = @intCast(_i); // TODO: remove this when I resolve 64-bit `PEXT` issue in bit-string lib
+    for (&table, 0..) |*ptr, idx| {
+        const i: u12 = @intCast(idx);
 
-        if (bstr.match("1001011000", i)) {
-            ptr.* = no_operand();
+        if (i == 0b000000000000) {
+            ptr.* = nop();
             continue;
         }
 
-        if (bstr.matchExtract("10010111ck", i)) |ret| {
-            ptr.* = jmp(ret.c == 0b1, ret.k == 0b1);
+        if (i == 0b100101011000) {
+            ptr.* = zero_operand();
             continue;
         }
 
-        if (bstr.matchExtract("000000rrrr", i)) |ret| {
-            ptr.* = multiply(ret.r);
+        if (i == 0b100101001000) {
+            ptr.* = status_clear_set();
             continue;
         }
 
-        if (bstr.matchExtract("001001rrrr", i)) |ret| {
+        if (bstr.matchExtract("1001010-11c-", i)) |ret| {
+            // can extract 2 bits of k at comptime, choose not to
+            ptr.* = jmp(ret.c == 0b1);
+            continue;
+        }
+
+        if (bstr.matchExtract("000000oorrrr", i)) |ret| {
+            ptr.* = multiply(ret.o, ret.r);
+            continue;
+        }
+
+        if (bstr.matchExtract("001001r-rrrr", i)) |ret| {
             ptr.* = eor(ret.r);
             continue;
         }
 
-        if (bstr.matchExtract("100100oooo", i)) |ret| {
-            ptr.* = load_store(ret.o);
+        if (bstr.matchExtract("100100s-oooo", i)) |ret| {
+            ptr.* = load_store(ret.s == 0b1, ret.o);
             continue;
         }
 
-        if (bstr.match("1110kkkkkk", i)) {
-            // only 2 bits from k are missing, don't think it's worth monomorphization :\
-            ptr.* = ldi();
+        if (bstr.matchExtract("1110kkkkkkkk", i)) |ret| {
+            ptr.* = ldi(ret.k);
             continue;
         }
 
-        if (bstr.matchExtract("1011s-----", i)) |ret| {
-            ptr.* = inout(ret.s == 0b1);
+        if (bstr.matchExtract("1011saa-aaaa", i)) |ret| {
+            ptr.* = inout(ret.s == 0b1, ret.a);
             continue;
         }
 
-        if (bstr.matchExtract("10k0kkykkk", i)) |ret| {
-            ptr.* = load_store_indirect(ret.y == 0b1, ret.k);
+        if (bstr.matchExtract("10k0kks-ykkk", i)) |ret| {
+            ptr.* = load_store_indirect(ret.s == 0b1, ret.y == 0b1, ret.k);
             continue;
         }
 
-        if (bstr.matchExtract("110c------", i)) |ret| {
+        if (bstr.matchExtract("110c--------", i)) |ret| {
             ptr.* = rjmp(ret.c == 0b1);
             continue;
         }
@@ -88,8 +99,8 @@ pub const lut = blk: {
 
 pub inline fn index(opcode: u16) u12 {
     // could use pext here (just sayin')
-    const lhs = opcode & 0b1111_1100_0000_0000;
+    const lhs = opcode & 0b1111_1111_0000_0000;
     const rhs = opcode & 0b0000_0000_0000_1111;
 
-    return @intCast(lhs >> 6 | rhs);
+    return @intCast(lhs >> 4 | rhs);
 }

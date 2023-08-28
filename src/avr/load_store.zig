@@ -6,15 +6,16 @@ const Cpu = @import("../avr.zig").Cpu;
 
 const log = std.log.scoped(.avr_load_store);
 
-pub fn handler(comptime op: u4) InstrFn {
+pub fn handler(comptime s: bool, comptime op: u4) InstrFn {
     return struct {
         fn inner(cpu: *Cpu, opcode: u16) void {
+            const ret = bstr.extract("100100-ddddd----", opcode);
+
             switch (op) {
                 0b1111 => {
-                    const ret = bstr.extract("------sddddd----", opcode);
-                    log.debug("{s} r{}", .{ if (ret.s == 0b1) "push" else "pop", ret.d });
+                    log.debug("{s} r{}", .{ if (s) "push" else "pop", ret.d });
 
-                    if (ret.s == 0b1) {
+                    if (s) {
                         // PUSH
                         const rr = ret.d;
 

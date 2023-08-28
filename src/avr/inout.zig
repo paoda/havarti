@@ -6,11 +6,10 @@ const Cpu = @import("../avr.zig").Cpu;
 
 const log = std.log.scoped(.avr_inout);
 
-pub fn handler(comptime s: bool) InstrFn {
+pub fn handler(comptime s: bool, comptime addr: u6) InstrFn {
     return struct {
         fn inner(cpu: *Cpu, opcode: u16) void {
-            const ret = bstr.extract("-----aadddddaaaa", opcode);
-            const addr = ret.a;
+            const ret = bstr.extract("1011---ddddd----", opcode);
 
             if (s) {
                 // OUT

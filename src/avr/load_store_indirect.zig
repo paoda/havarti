@@ -6,27 +6,28 @@ const Cpu = @import("../avr.zig").Cpu;
 
 const log = std.log.scoped(.avr_load_store_indirect);
 
-pub fn handler(comptime y: bool, comptime k: u6) InstrFn {
+pub fn handler(comptime s: bool, comptime y: bool, comptime k: u6) InstrFn {
     return struct {
         fn inner(cpu: *Cpu, opcode: u16) void {
             // TODO: care about RAMPY / RAMPX
-            const ret = bstr.extract("10-0--sddddd----", opcode);
+            const ret = bstr.extract("10-0---ddddd----", opcode);
+            const pair = if (y) .y else .z;
 
-            if (y) {
+            if (s) {
                 // STD
                 const rr = ret.d;
                 log.debug("std Y+{}, r{}", .{ k, rr });
 
-                cpu.bus.write(u8, .data, cpu.pair(.y) + k, cpu.r[rr]);
+                cpu.bus.write(u8, .data, cpu.pair(pair) + k, cpu.r[rr]);
             } else {
                 // LDD
                 const rd = ret.d;
                 log.debug("ldd r{}, Z+{}", .{ rd, k });
 
-                cpu.r[rd] = cpu.bus.read(u8, .data, cpu.pair(.z) + k);
+                cpu.r[rd] = cpu.bus.read(u8, .data, cpu.pair(pair) + k);
             }
 
-            //  TODO: incorrect here, but correct where we properly decode this
+            // FIXME: I wrote this code in the wrong handler. Try to salvage this?
             // if (y) {
             //     // ST
             //     const rr = ret.d;
