@@ -11,7 +11,13 @@ pub fn handler(comptime rr: u5) InstrFn {
             const rd = opcode >> 4 & 0x1F;
             log.debug("eor r{}, r{}", .{ rd, rr });
 
-            cpu.r[rd] = cpu.r[rd] ^ cpu.r[rr];
+            const value = cpu.r[rd] ^ cpu.r[rr];
+            cpu.r[rd] = value;
+
+            cpu.sreg.zero = value == 0x00;
+            cpu.sreg.negative = value >> 7 == 0b1;
+            cpu.sreg.overflow = false;
+            cpu.sreg.sign = cpu.sreg.negative != cpu.sreg.overflow;
         }
     }.inner;
 }
