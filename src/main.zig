@@ -27,6 +27,8 @@ pub fn main() !void {
     for (0..100) |_| {
         cpu.step();
     }
+
+    cpu.print();
 }
 
 // TODO: rename

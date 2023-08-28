@@ -87,19 +87,24 @@ pub fn step(self: *Cpu) void {
 }
 
 pub fn panic(self: Cpu, comptime fmt: []const u8, args: anytype) noreturn {
+    self.print();
+
+    std.debug.print("\n", .{});
+    std.debug.panic(fmt, args);
+}
+
+pub fn print(self: Cpu) void {
     const r = self.r;
 
     for (0..8) |i| {
         const ri = i * 4;
         log.err("r{: <2}: 0x{X:0>2}\tr{: <2}: 0x{X:0>2}\tr{: <2}: 0x{X:0>2}\tr{: <2}: 0x{X:0>2}", .{ ri, r[ri], ri + 1, r[ri + 1], ri + 2, r[ri + 2], ri + 3, r[ri + 3] });
     }
+    log.err("pc: 0x{X:0>6}", .{self.pc * @sizeOf(u16)});
     log.err("sp: 0x{X:0>4}", .{self.sp});
     log.err("sreg: 0x{X:0>2} {s}", .{ @as(u8, @bitCast(self.sreg)), self.sreg.print() });
 
     if (self.pipeline.stage != null) log.err("next instr (in decoding stage): 0x{X:0>4}", .{self.pipeline.stage.?});
-
-    std.debug.print("\n", .{});
-    std.debug.panic(fmt, args);
 }
 
 const Pipeline = struct {

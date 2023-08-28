@@ -16,13 +16,13 @@ pub fn handler(comptime s: bool, comptime y: bool, comptime k: u6) InstrFn {
             if (s) {
                 // STD
                 const rr = ret.d;
-                log.debug("std Y+{}, r{}", .{ k, rr });
+                log.debug("std {s}+{}, r{}", .{ [_]u8{@tagName(pair)[0] ^ 0x20}, k, rr });
 
                 cpu.bus.write(u8, .data, cpu.pair(pair) + k, cpu.r[rr]);
             } else {
                 // LDD
                 const rd = ret.d;
-                log.debug("ldd r{}, Z+{}", .{ rd, k });
+                log.debug("ldd r{}, {s}+{}", .{ rd, [_]u8{@tagName(pair)[0] ^ 0x20}, k });
 
                 cpu.r[rd] = cpu.bus.read(u8, .data, cpu.pair(pair) + k);
             }
