@@ -29,6 +29,34 @@ pub fn deinit(self: Cpu, allocator: Allocator) void {
     self.bus.deinit(allocator);
 }
 
+const Pair = union(enum) { x: void, y: void, z: void, r: u5 };
+
+pub fn pair(self: *const Cpu, idx: Pair) u16 {
+    const rr = switch (idx) {
+        .x => 26,
+        .y => 28,
+        .z => 30,
+        .r => |r| r,
+    };
+    std.debug.assert(rr & 1 == 0);
+
+    // FIXME: Don't fully understand this. readIntLittle or readIntNative?
+    return std.mem.readIntLittle(u16, self.r[rr..][0..@sizeOf(u16)]);
+}
+
+pub fn setPair(self: *Cpu, idx: Pair, value: u16) void {
+    const rd = switch (idx) {
+        .x => 26,
+        .y => 28,
+        .z => 30,
+        .r => |r| r,
+    };
+    std.debug.assert(rd & 1 == 0);
+
+    // FIXME: Don't fully understand this. readIntLittle or readIntNative?
+    std.mem.writeIntLittle(self.r[rd..][0..@sizeOf(u16)], value);
+}
+
 fn fetch(self: *Cpu) u16 {
     defer self.pc += 1;
     return self.bus.read(u16, .prog, self.pc * @sizeOf(Word));

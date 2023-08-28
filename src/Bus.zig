@@ -35,6 +35,7 @@ pub fn deinit(self: Bus, allocator: Allocator) void {
 pub fn read(self: *Bus, comptime T: type, comptime space: Space, address: u22) T {
     const readInt = std.mem.readIntLittle;
     const byte_count = @divExact(@typeInfo(T).Int.bits, 8);
+    const cpu = @fieldParentPtr(Cpu, "bus", self);
 
     return switch (space) {
         .prog => switch (address) {
@@ -42,14 +43,11 @@ pub fn read(self: *Bus, comptime T: type, comptime space: Space, address: u22) T
             else => std.debug.panic("0x{X:0>6} exceeds the program bus address space", .{address}),
         },
         .data => switch (address) {
-            0x0000...0x001F => blk: {
-                const cpu = @fieldParentPtr(Cpu, "bus", self);
-                break :blk cpu.r[address];
-            },
+            0x0000...0x001F => cpu.r[address],
             0x0020...0x005F => io.read(self, @intCast(address - 0x20)),
             0x0060...0x00FF => @panic("TODO: 160 Ext I/O Registers"),
             0x0100...(0x0100 + data_size - 1) => readInt(T, self.data[address - 0x100 ..][0..byte_count]),
-            else => std.debug.panic("0x{X:0>6} exceeds the data bus address space", .{address}),
+            else => cpu.panic("0x{X:0>6} exceeds the data bus address space", .{address}),
         },
         .io => io.read(self, @intCast(address)),
     };
@@ -58,17 +56,15 @@ pub fn read(self: *Bus, comptime T: type, comptime space: Space, address: u22) T
 pub fn write(self: *Bus, comptime T: type, comptime space: Space, address: u22, value: T) void {
     const writeInt = std.mem.writeIntLittle;
     const byte_count = @divExact(@typeInfo(T).Int.bits, 8);
+    const cpu = @fieldParentPtr(Cpu, "bus", self);
 
     switch (space) {
         .data => switch (address) {
-            0x0000...0x001F => {
-                const cpu = @fieldParentPtr(Cpu, "bus", self);
-                cpu.r[address] = @intCast(value);
-            },
+            0x0000...0x001F => cpu.r[address] = @intCast(value),
             0x0020...0x005F => io.write(self, @intCast(address - 0x20), @intCast(value)),
             0x0060...0x00FF => @panic("TODO: 160 Ext I/O Registers"),
             0x0100...(0x0100 + data_size - 1) => writeInt(T, self.data[address - 0x100 ..][0..byte_count], value),
-            else => @panic("TODO: write better error for invalid data write"),
+            else => cpu.panic("tried to write 0x{X:} to 0x{X:0>6}", .{ value, address }),
         },
         .io => io.write(self, @intCast(address), value),
         .prog => unreachable, // Program Memory is Read-Only
