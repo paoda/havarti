@@ -54,7 +54,7 @@ pub fn setPair(self: *Cpu, idx: Pair, value: u16) void {
     std.debug.assert(rd & 1 == 0);
 
     // FIXME: Don't fully understand this. readIntLittle or readIntNative?
-    std.mem.writeIntLittle(self.r[rd..][0..@sizeOf(u16)], value);
+    std.mem.writeIntLittle(u16, self.r[rd..][0..@sizeOf(u16)], value);
 }
 
 fn fetch(self: *Cpu) u16 {

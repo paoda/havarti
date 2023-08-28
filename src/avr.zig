@@ -15,6 +15,7 @@ const ldi = @import("avr/ldi.zig").handler;
 const zero_operand = @import("avr/zero_operand.zig").handler;
 const load_store = @import("avr/load_store.zig").handler;
 const load_store_indirect = @import("avr/load_store_indirect.zig").handler;
+const add_sub_imm_word = @import("avr/add_sub_imm_word.zig").handler;
 
 const log = std.log.scoped(.avr);
 
@@ -22,7 +23,7 @@ pub fn und(cpu: *Cpu, opcode: u16) void {
     const fmt_str =
         \\an undefined instruction was run!
         \\opcode: 0x{X:0>4}
-        \\index: 0x{X:0>3} (0b{b:0>10})
+        \\index: 0x{X:0>3} (0b{b:0>12})
     ;
 
     const opcode_index = index(opcode);
@@ -34,6 +35,8 @@ pub const lut = blk: {
 
     for (&table, 0..) |*ptr, idx| {
         const i: u12 = @intCast(idx);
+
+        // 12 constant bits
 
         if (i == 0b000000000000) {
             ptr.* = nop();
@@ -50,11 +53,22 @@ pub const lut = blk: {
             continue;
         }
 
+        // 9 constant bits
+
         if (bstr.matchExtract("1001010-11c-", i)) |ret| {
             // can extract 2 bits of k at comptime, choose not to
             ptr.* = jmp(ret.c == 0b1);
             continue;
         }
+
+        // 8 constant bits
+
+        if (bstr.matchExtract("1001011s----", i)) |ret| {
+            ptr.* = add_sub_imm_word(ret.s == 0b1);
+            continue;
+        }
+
+        // 6 constant bits
 
         if (bstr.matchExtract("000000oorrrr", i)) |ret| {
             ptr.* = multiply(ret.o, ret.r);
@@ -71,6 +85,8 @@ pub const lut = blk: {
             continue;
         }
 
+        // 4 constant bits
+
         if (bstr.matchExtract("1110kkkkkkkk", i)) |ret| {
             ptr.* = ldi(ret.k);
             continue;
@@ -80,6 +96,8 @@ pub const lut = blk: {
             ptr.* = inout(ret.s == 0b1, ret.a);
             continue;
         }
+
+        // 3 constant bits
 
         if (bstr.matchExtract("10k0kks-ykkk", i)) |ret| {
             ptr.* = load_store_indirect(ret.s == 0b1, ret.y == 0b1, ret.k);
