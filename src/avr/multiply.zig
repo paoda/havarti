@@ -13,7 +13,13 @@ pub fn handler(comptime op: u2, comptime rr: u4) InstrFn {
 
             switch (op) {
                 0b00 => cpu.panic("0x{X:0>4} is an invalid AVR instruction", .{opcode}),
-                0b01 => cpu.panic("TODO: implement movw rd, rr", .{}),
+                0b01 => {
+                    const rd: u5 = @intCast((opcode >> 4 & 0xF) << 1);
+                    const rp = @as(u5, rr) << 1;
+                    log.debug("movw r{} r{}", .{ rd, rp });
+
+                    cpu.setPair(.{ .r = rd }, cpu.pair(.{ .r = rp }));
+                },
                 0b10 => cpu.panic("TODO: implement muls rd, rr", .{}),
                 0b11 => {
                     const op2: u2 = @intCast((ret.d >> 3) << 1 | rr >> 3);
