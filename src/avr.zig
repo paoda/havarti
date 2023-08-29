@@ -18,6 +18,8 @@ const load_store_indirect = @import("avr/load_store_indirect.zig").handler;
 const add_sub_imm_word = @import("avr/add_sub_imm_word.zig").handler;
 const cond_branch = @import("avr/cond_branch.zig").handler;
 const cpi = @import("avr/cpi.zig").handler;
+const sbrc = @import("avr/sbrc.zig").handler;
+const reg_imm = @import("avr/reg_imm.zig").handler;
 
 const log = std.log.scoped(.avr);
 
@@ -70,6 +72,13 @@ pub const lut = blk: {
             continue;
         }
 
+        // 7 constant bits
+
+        if (bstr.matchExtract("111111c-0bbb", i)) |ret| {
+            ptr.* = sbrc(ret.c, ret.b);
+            continue;
+        }
+
         // 6 constant bits
 
         if (bstr.matchExtract("000000oorrrr", i)) |ret| {
@@ -119,6 +128,11 @@ pub const lut = blk: {
         }
 
         // 2 constant bits
+
+        if (bstr.matchExtract("01ookkkkkkkk", i)) |ret| {
+            ptr.* = reg_imm(ret.o, ret.k);
+            continue;
+        }
 
         if (bstr.matchExtract("00oooor-rrrr", i)) |ret| {
             ptr.* = alu(ret.o, ret.r);

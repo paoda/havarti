@@ -13,7 +13,7 @@ pub fn handler(comptime c: u1, comptime b: u3) InstrFn {
             const PcT = @TypeOf(cpu.pc);
             const ret = bstr.extract("11110-kkkkkkk---", opcode);
             const sreg: u8 = @bitCast(cpu.sreg);
-            log.debug("{s} {}", .{ alias(c == 0b1, b), @sizeOf(u16) * @as(i7, @bitCast(ret.k)) });
+            log.debug("{s} {}", .{ alias(c == 0b1, b), @sizeOf(u16) * @as(i8, @intCast(ret.k)) });
 
             // when c == 0b0 we want the bit set
             // when c == 0b1 we want the bit cleared
