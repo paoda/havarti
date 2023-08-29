@@ -12,8 +12,9 @@ pub fn handler(comptime c: bool) InstrFn {
             const PcT = @TypeOf(cpu.pc);
 
             const ret = bstr.extract("-------kkkkk---k", opcode);
-            const k = cpu.bus.read(u16, .prog, @sizeOf(u16) * (cpu.pc + 1));
-            cpu.pc += 1; // this is immediately overwritten, but good practice anyways
+
+            const k = cpu.pipeline.stage orelse cpu.panic("cpu pipline was empty", .{});
+            cpu.pc += 2; // this is immediately overwritten, but good practice anyways
 
             const offset = @typeInfo(PcT).Int.bits - @typeInfo(@TypeOf(ret.k)).Int.bits;
             const address = (@as(PcT, ret.k) << @intCast(offset)) | @as(PcT, @intCast(k));
