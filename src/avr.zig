@@ -9,7 +9,7 @@ const status_clear_set = @import("avr/status_clear_set.zig").handler;
 const multiply = @import("avr/multiply.zig").handler;
 const rjmp = @import("avr/rjmp.zig").handler;
 const jmp = @import("avr/jmp.zig").handler;
-const eor = @import("avr/eor.zig").handler;
+const alu = @import("avr/alu.zig").handler;
 const inout = @import("avr/inout.zig").handler;
 const ldi = @import("avr/ldi.zig").handler;
 const zero_operand = @import("avr/zero_operand.zig").handler;
@@ -76,11 +76,6 @@ pub const lut = blk: {
             continue;
         }
 
-        if (bstr.matchExtract("001001r-rrrr", i)) |ret| {
-            ptr.* = eor(ret.r);
-            continue;
-        }
-
         if (bstr.matchExtract("100100s-oooo", i)) |ret| {
             ptr.* = load_store(ret.s == 0b1, ret.o);
             continue;
@@ -114,6 +109,13 @@ pub const lut = blk: {
 
         if (bstr.matchExtract("110c--------", i)) |ret| {
             ptr.* = rjmp(ret.c == 0b1);
+            continue;
+        }
+
+        // 2 constant bits
+
+        if (bstr.matchExtract("00oooor-rrrr", i)) |ret| {
+            ptr.* = alu(ret.o, ret.r);
             continue;
         }
 
